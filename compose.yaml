@@ -4,15 +4,15 @@ services:
     ports:
       - "80:5000"
   sqlServer:
-    image: "mcr.microsoft.com/mssql/server"
+    image: "postgres"
     volumes:
       - sql_data:/var/lib/mysql
     ports:
-      - "1433:1433"
+      - "5432:5432"
     environment:
-      NAME: "SigmaChat"
-      MSSQL_SA_PASSWORD: "JHVHjhvh!"
-      ACCEPT_EULA: "Y"
+      - POSTGRES_PASSWORD=JHVHjhvh!
+      - POSTGRES_USER=sa
+      - POSTGRES_DB=SigmaChatDb
 
 volumes:
   sql_data:

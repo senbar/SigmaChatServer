@@ -12,7 +12,7 @@ open SigmaChatServer.HttpHandlers
 open SigmaChatServer.ChatDb
 open System.Data
 open Microsoft.Extensions.Configuration
-open Microsoft.Data.SqlClient
+open Npgsql
 
 // ---------------------------------
 // Web app
@@ -64,7 +64,7 @@ let configureServices (services : IServiceCollection) =
     services.AddTransient<IDbConnection>( fun serviceProvider ->
             // The configuration information is in appsettings.json
             let settings = serviceProvider.GetService<IConfiguration>()
-            upcast new SqlConnection(settings.["DbConnectionString"]) ) |> ignore
+            upcast new NpgsqlConnection(settings.["DbConnectionString"]) ) |> ignore
     services.AddCors()    |> ignore
     services.AddGiraffe() |> ignore
 
