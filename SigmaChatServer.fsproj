@@ -19,4 +19,7 @@
   <ItemGroup>
     <None Include="web.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToPublishDirectory="Always" />
+  </ItemGroup>
 </Project>
