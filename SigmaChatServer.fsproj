@@ -3,6 +3,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>SigmaChatServer.App</AssemblyName>
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.24" />
