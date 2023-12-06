@@ -12,11 +12,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Models.fs" />
-    <Compile Include="ChatDb.fs" />
+    <Compile Include="sql/Migrations.fs" />
+    <Compile Include="sql/ChatDb.fs" />
     <Compile Include="HttpHandlers.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="web.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="appsettings.json" CopyToPublishDirectory="Always" />
   </ItemGroup>
 </Project>

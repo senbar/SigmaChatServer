@@ -9,5 +9,9 @@ type Message ={
 [<CLIMutable>]
 type Chat =
     {
+        ChatId: int
         Messages: List<Message>
     }
+
+// [<CLIMutable>]
+// type CreateChat ={} 

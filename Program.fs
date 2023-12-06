@@ -13,26 +13,29 @@ open SigmaChatServer.ChatDb
 open System.Data
 open Microsoft.Extensions.Configuration
 open Npgsql
+open Microsoft.AspNetCore.Http
+open System.Threading.Tasks
 
 // ---------------------------------
 // Web app
 // ---------------------------------
 
 let webApp =
-    choose [
-        subRoute "/api"
-            (choose [
-                GET >=> choose [
-                    route "/chat" >=> handleGetChat 
-                ]
-            ])
-        setStatusCode 404 >=> text "Not Found" ]
+    choose
+        [ subRoute
+              "/api"
+              (choose
+                  [ subRoute
+                        "/chat"
+                        (choose [ GET >=> routef "/%i" (fun id -> handleGetChats id); POST >=> handlePostChat ])
+                    subRoute "/db" (choose [ GET >=> updateSchema ]) ])
+          setStatusCode 404 >=> text "Not Found" ]
 
 // ---------------------------------
 // Error handler
 // ---------------------------------
 
-let errorHandler (ex : Exception) (logger : ILogger) =
+let errorHandler (ex: Exception) (logger: ILogger) =
     logger.LogError(ex, "An unhandled exception has occurred while executing the request.")
     clearResponse >=> setStatusCode 500 >=> text ex.Message
 
@@ -40,48 +43,47 @@ let errorHandler (ex : Exception) (logger : ILogger) =
 // Config and Main
 // ---------------------------------
 
-let configureCors (builder : CorsPolicyBuilder) =
+let configureCors (builder: CorsPolicyBuilder) =
     builder
-        .WithOrigins(
-            "http://localhost:5000",
-            "https://localhost:5001")
-       .AllowAnyMethod()
-       .AllowAnyHeader()
-       |> ignore
+        .WithOrigins("http://localhost:5000", "https://localhost:5001")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+    |> ignore
 
-let configureApp (app : IApplicationBuilder) =
+let configureApp (app: IApplicationBuilder) =
     let env = app.ApplicationServices.GetService<IWebHostEnvironment>()
+
     (match env.IsDevelopment() with
-    | true  ->
-        app.UseDeveloperExceptionPage()
-    | false ->
-        app .UseGiraffeErrorHandler(errorHandler)
-            .UseHttpsRedirection())
+     | true -> app.UseDeveloperExceptionPage()
+     | false -> app.UseGiraffeErrorHandler(errorHandler).UseHttpsRedirection())
         .UseCors(configureCors)
         .UseGiraffe(webApp)
 
-let configureServices (services : IServiceCollection) =
-    services.AddTransient<IDbConnection>( fun serviceProvider ->
-            // The configuration information is in appsettings.json
-            let settings = serviceProvider.GetService<IConfiguration>()
-            upcast new NpgsqlConnection(settings.["DbConnectionString"]) ) |> ignore
-    services.AddCors()    |> ignore
+let configureServices (services: IServiceCollection) =
+    services.AddTransient<IDbConnection>(fun serviceProvider ->
+        // The configuration information is in appsettings.json
+        let settings = serviceProvider.GetService<IConfiguration>()
+        let connection = new NpgsqlConnection(settings.["DbConnectionString"])
+        upcast connection)
+    |> ignore
+
+    services.AddCors() |> ignore
     services.AddGiraffe() |> ignore
 
-let configureLogging (builder : ILoggingBuilder) =
-    builder.AddConsole()
-           .AddDebug() |> ignore
+let configureLogging (builder: ILoggingBuilder) =
+    builder.AddConsole().AddDebug() |> ignore
 
 [<EntryPoint>]
 let main args =
-    Host.CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(
-            fun webHostBuilder ->
-                webHostBuilder
-                    .Configure(Action<IApplicationBuilder> configureApp)
-                    .ConfigureServices(configureServices)
-                    .ConfigureLogging(configureLogging)
-                    |> ignore)
+    Host
+        .CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(fun webHostBuilder ->
+            webHostBuilder
+                .Configure(Action<IApplicationBuilder> configureApp)
+                .ConfigureServices(configureServices)
+                .ConfigureLogging(configureLogging)
+            |> ignore)
         .Build()
         .Run()
+
     0
