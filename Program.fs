@@ -8,28 +8,23 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
-open SigmaChatServer.HttpHandlers
-open SigmaChatServer.ChatDb
+open SigmaChatServer.Routing
 open System.Data
 open Microsoft.Extensions.Configuration
 open Npgsql
 open Microsoft.AspNetCore.Http
 open System.Threading.Tasks
-
+open Microsoft.AspNet.SignalR
+open Microsoft.AspNet.SignalR.Hubs
+open Microsoft.AspNetCore.Builder
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.AspNetCore.Hosting
+open Hub
 // ---------------------------------
 // Web app
 // ---------------------------------
 
-let webApp =
-    choose
-        [ subRoute
-              "/api"
-              (choose
-                  [ subRoute
-                        "/chat"
-                        (choose [ GET >=> routef "/%i" (fun id -> handleGetChats id); POST >=> handlePostChat ])
-                    subRoute "/db" (choose [ GET >=> updateSchema ]) ])
-          setStatusCode 404 >=> text "Not Found" ]
+let webApp = routing
 
 // ---------------------------------
 // Error handler
@@ -45,7 +40,8 @@ let errorHandler (ex: Exception) (logger: ILogger) =
 
 let configureCors (builder: CorsPolicyBuilder) =
     builder
-        .WithOrigins("http://localhost:5000", "https://localhost:5001")
+        // .AllowAnyOrigin()
+        .WithOrigins("http://localhost:5000", "https://localhost:5001", "http://localhost:3000")
         .AllowAnyMethod()
         .AllowAnyHeader()
     |> ignore
@@ -56,7 +52,9 @@ let configureApp (app: IApplicationBuilder) =
     (match env.IsDevelopment() with
      | true -> app.UseDeveloperExceptionPage()
      | false -> app.UseGiraffeErrorHandler(errorHandler).UseHttpsRedirection())
+        .UseRouting()
         .UseCors(configureCors)
+        .UseEndpoints(fun endpoints -> endpoints.MapHub<ChatHub>("/hub") |> ignore)
         .UseGiraffe(webApp)
 
 let configureServices (services: IServiceCollection) =
@@ -68,6 +66,13 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
     services.AddCors() |> ignore
+
+    services.AddSignalR(fun conf ->
+        conf.EnableDetailedErrors = Nullable true |> ignore
+        conf.KeepAliveInterval = Nullable(TimeSpan.FromSeconds(5)) |> ignore
+        conf.HandshakeTimeout = Nullable(TimeSpan.FromSeconds(5)) |> ignore)
+    |> ignore
+
     services.AddGiraffe() |> ignore
 
 let configureLogging (builder: ILoggingBuilder) =

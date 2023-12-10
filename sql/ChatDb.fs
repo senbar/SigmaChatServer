@@ -54,3 +54,31 @@ module ChatDb =
             let! id = connection.ExecuteScalarAsync<int>(sql)
             return id
         }
+
+    let postMessage (ctx: HttpContext) =
+        task {
+            use connection = ctx.GetService<IDbConnection>()
+            let! createMessageModel = ctx.BindJsonAsync<Message>()
+
+            let sql =
+                """INSERT INTO "Messages" ("ChatId", "Sender", "Text", "DateCreated") VALUES (@chatId, @sender, @text, CURRENT_DATE) 
+                RETURNING * """
+
+            let sqlParams =
+                {| chatId = createMessageModel.ChatId
+                   sender = createMessageModel.Sender
+                   text = createMessageModel.Text |}
+
+            let! createdMessage = connection.QuerySingleOrDefaultAsync<Message>(sql, sqlParams)
+            return createdMessage
+        }
+
+    let getMessages (ctx: HttpContext) (chatId: int) =
+        task {
+            use connection = ctx.GetService<IDbConnection>()
+
+            let sql = """SELECT * FROM "Messages" WHERE "ChatId" = @chatId"""
+            let data = {| chatId = chatId |}
+            let! messages = connection.QueryAsync<Message>(sql, data)
+            return messages
+        }
