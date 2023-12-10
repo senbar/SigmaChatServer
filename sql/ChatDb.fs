@@ -14,14 +14,17 @@ module ChatDb =
         "\n"
         + $"""
             INSERT INTO "Migrations" ("Version")
-            VALUES ({version})
+            VALUES ({version});
             """
 
     let generateMigrationScript (migrationsTable: string array) (version: int) =
-        Array.fold
-            (fun (accu, vers) next -> (accu + "\n" + next + (generateVersionInsert (vers + 1)), vers + 1))
-            ("", version)
-            migrationsTable[version..]
+        let (sql: string, _: int) =
+            Array.fold
+                (fun (accu, vers) next -> (accu + "\r\n " + next + (generateVersionInsert (vers + 1)), vers + 1))
+                ("", version)
+                migrationsTable[version..]
+
+        sql
 
     let lastMigrationVersion (connection: IDbConnection) =
         task {

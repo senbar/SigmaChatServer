@@ -1,19 +1,20 @@
 namespace SigmaChatServer
 
 module Migrations =
-    let GetVersion=
+    let GetVersion =
         """
         SELECT "Version" FROM "Migrations" 
         ORDER BY "Version" DESC
-        LIMIT 1
+        LIMIT 1;
         """
-    let Migrations=[|
-        """
+
+    let Migrations =
+        [| """
             CREATE TABLE "Migrations"(
                 "Version" INT PRIMARY KEY
             );
         """
-        """
+           """
             CREATE TABLE "Chats"(
                 "ChatId" serial PRIMARY KEY
             );
@@ -27,5 +28,4 @@ module Migrations =
                 FOREIGN KEY ("ChatId")
                     REFERENCES "Chats" ("ChatId")
             );
-        """
-    |]
+        """ |]
