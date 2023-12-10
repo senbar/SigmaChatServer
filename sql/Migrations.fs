@@ -19,6 +19,8 @@ module Migrations =
                 "ChatId" serial PRIMARY KEY
             );
 
+            INSERT INTO "Chats" DEFAULT VALUES ;
+
             CREATE TABLE "Messages"(
                 "ChatId" INT NOT NULL,
                 "MessageId" serial PRIMARY KEY,
