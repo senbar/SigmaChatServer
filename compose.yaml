@@ -3,6 +3,8 @@ services:
     build: .
     ports:
       - "5000:80"
+    networks:
+      - sigmaChat
   sqlServer:
     image: "postgres"
     volumes:
@@ -13,6 +15,12 @@ services:
       - POSTGRES_PASSWORD=JHVHjhvh!
       - POSTGRES_USER=sa
       - POSTGRES_DB=SigmaChatDb
+    networks:
+      - sigmaChat
 
 volumes:
   sql_data:
+
+networks:
+  sigmaChat:
+    name: sigmaChat
