@@ -18,8 +18,11 @@ open Microsoft.AspNet.SignalR
 open Microsoft.AspNet.SignalR.Hubs
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.IdentityModel.Tokens
 open Microsoft.AspNetCore.Hosting
+open Microsoft.AspNetCore.Authentication.JwtBearer
 open Hub
+open Microsoft.IdentityModel.Claims
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -54,6 +57,8 @@ let configureApp (app: IApplicationBuilder) =
      | false -> app.UseGiraffeErrorHandler(errorHandler).UseHttpsRedirection())
         .UseRouting()
         .UseCors(configureCors)
+        .UseAuthentication()
+        // .UseAuthorization()
         .UseEndpoints(fun endpoints -> endpoints.MapHub<ChatHub>("/hub") |> ignore)
         .UseGiraffe(webApp)
 
@@ -73,6 +78,29 @@ let configureServices (services: IServiceCollection) =
         conf.HandshakeTimeout = Nullable(TimeSpan.FromSeconds(5)) |> ignore)
     |> ignore
 
+    services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(fun (options) ->
+            // TODO unhardcode this stuff
+            let domain = "https://dev-szyhz3rxdab8xgmo.us.auth0.com/"
+            let audience = "SigmaChatBackend"
+
+            options.Authority <- domain
+            options.Audience <- audience
+
+            options.TokenValidationParameters <- TokenValidationParameters(NameClaimType = ClaimTypes.NameIdentifier))
+    |> ignore
+
+    // services.AddAuthorization() |> ignore
+    // => options {
+    //     options.AddPolicy(
+    //         "read:admin-messages",
+    //         => policy { policy.Requirements.Add(new RbacRequirement("read:admin-messages")) }
+    //     )
+    // }
+
+
+    // services.AddSingleton<IAuthorizationHandler, RbacHandler>()
     services.AddGiraffe() |> ignore
 
 let configureLogging (builder: ILoggingBuilder) =

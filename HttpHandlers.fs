@@ -33,6 +33,7 @@ module HttpHandlers =
 
     let handleGetMessages (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
+            let z = ctx.User.Claims
             let! chat = getMessages ctx chatId
             return! json chat next ctx
         }
@@ -44,4 +45,10 @@ module HttpHandlers =
             do! NotifyNewMessageCreated hub createdMessage
 
             return! json createdMessage next ctx
+        }
+
+    let handleCallback (next: HttpFunc) (ctx: HttpContext) =
+        task {
+            let z = ctx.User
+            return! next ctx
         }
