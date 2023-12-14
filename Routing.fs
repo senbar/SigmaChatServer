@@ -16,12 +16,12 @@ module Routing =
 
     let routing: HttpFunc -> HttpContext -> HttpFuncResult =
         choose
-            [ subRoute "/api" mustBeLoggedIn
-              >=> (choose
-                  [ subRoute
-                        "/chat"
-                        (choose [ GET >=> routef "/%i" (fun id -> handleGetChats id); POST >=> handlePostChat ])
-                    subRoute "/db" (choose [ GET >=> updateSchema ])
-                    subRoute "/messages" (messages)
-                    subRoute "/callback" (handleCallback) ])
+            [ subRoute
+                  "/api"
+                  (choose
+                      [ subRoute "/chat" mustBeLoggedIn
+                        >=> (choose [ GET >=> routef "/%i" (fun id -> handleGetChats id); POST >=> handlePostChat ])
+                        subRoute "/db" (choose [ GET >=> updateSchema ])
+                        subRoute "/messages" mustBeLoggedIn >=> (messages)
+                        subRoute "/callback" mustBeLoggedIn >=> (handleCallback) ])
               setStatusCode 404 >=> text "Not Found" ]
