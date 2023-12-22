@@ -10,6 +10,8 @@ module HttpHandlers =
     open System
     open Hub
     open Microsoft.AspNetCore.SignalR
+    open UserDb
+    open System.Threading.Tasks
 
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
@@ -33,7 +35,6 @@ module HttpHandlers =
 
     let handleGetMessages (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
-            let z = ctx.User.Claims
             let! chat = getMessages ctx chatId
             return! json chat next ctx
         }
@@ -41,14 +42,56 @@ module HttpHandlers =
     let handlePostMessage (next: HttpFunc) (ctx: HttpContext) =
         task {
             let hub = ctx.GetService<IHubContext<ChatHub>>()
-            let! createdMessage = postMessage ctx
-            do! NotifyNewMessageCreated hub createdMessage
+            let! createMessageModel = ctx.BindJsonAsync<CreateMessageModel>()
+            let userId = ctx.User.Identity.Name
 
-            return! json createdMessage next ctx
+            let processTooShortMessage () =
+                task { return! RequestErrors.BAD_REQUEST (text "Basic") next ctx }
+
+            let processCorrectMessage model =
+                task {
+                    let! createdMessage = postMessage ctx model userId
+                    do! notifyNewMessageCreated hub createdMessage
+                    return! json createdMessage next ctx
+                }
+
+            return!
+                match createMessageModel with
+                | model when model.Text.Length = 0 -> processTooShortMessage ()
+                | model -> processCorrectMessage model
         }
 
     let handleCallback (next: HttpFunc) (ctx: HttpContext) =
         task {
-            let z = ctx.User
-            return! next ctx
+            let userId = ctx.User.Identity.Name
+            let! userInDb = getUser ctx userId
+
+            let! resultingUser =
+                match userInDb with
+                | Some user -> Task.FromResult(user)
+                | None -> createUser ctx userId
+
+            return! json resultingUser next ctx
+        }
+
+    let handleUpdateMeProfile (next: HttpFunc) (ctx: HttpContext) =
+        task {
+            let userId = ctx.User.Identity.Name
+            let! updateMeModel = ctx.BindJsonAsync<UpdateMeModel>()
+            do! updateUser ctx userId updateMeModel
+
+            return! json None next ctx
+        }
+
+    let handleGetUserMe (next: HttpFunc) (ctx: HttpContext) =
+        task {
+            let userId = ctx.User.Identity.Name
+            let! user = getUser ctx userId
+
+            let res =
+                match user with
+                | Some u -> json u next ctx
+                | None -> RequestErrors.UNAUTHORIZED "Basic" "" "You must be logged in." next ctx
+
+            return! res
         }

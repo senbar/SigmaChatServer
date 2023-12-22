@@ -23,5 +23,8 @@ module Routing =
                         >=> (choose [ GET >=> routef "/%i" (fun id -> handleGetChats id); POST >=> handlePostChat ])
                         subRoute "/db" (choose [ GET >=> updateSchema ])
                         subRoute "/messages" mustBeLoggedIn >=> (messages)
+                        subRoute "/user/me" mustBeLoggedIn
+                        >=> (choose[GET >=> handleGetUserMe
+                                    PATCH >=> handleUpdateMeProfile])
                         subRoute "/callback" mustBeLoggedIn >=> (handleCallback) ])
               setStatusCode 404 >=> text "Not Found" ]

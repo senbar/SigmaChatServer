@@ -12,5 +12,5 @@ module Hub =
             Console.WriteLine("connected: " + this.Context.ConnectionId)
             base.OnConnectedAsync()
 
-    let NotifyNewMessageCreated (hubContext: IHubContext<ChatHub>) (message: Message) =
+    let notifyNewMessageCreated (hubContext: IHubContext<ChatHub>) (message: MessageModel) =
         task { return! hubContext.Clients.All.SendAsync("ReceiveMessage", message) }

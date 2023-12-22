@@ -58,21 +58,23 @@ module ChatDb =
             return id
         }
 
-    let postMessage (ctx: HttpContext) =
+    let postMessage (ctx: HttpContext) (createMessageModel: CreateMessageModel) (userId: string) =
         task {
             use connection = ctx.GetService<IDbConnection>()
-            let! createMessageModel = ctx.BindJsonAsync<Message>()
 
             let sql =
-                """INSERT INTO "Messages" ("ChatId", "Sender", "Text", "DateCreated") VALUES (@chatId, @sender, @text, CURRENT_DATE) 
-                RETURNING * """
+                """
+                WITH new_message AS (INSERT INTO "Messages" ("ChatId", "UserId", "Text", "DateCreated") VALUES (@chatId, @userId, @text, CURRENT_DATE) RETURNING *),
+                message_model as (SELECT new_message.*, "Users"."Nickname" AS "UserNickname" FROM new_message LEFT JOIN "Users" ON new_message."UserId" = "Users"."Id" )
+                SELECT message_model.* from message_model;"""
 
             let sqlParams =
                 {| chatId = createMessageModel.ChatId
-                   sender = createMessageModel.Sender
+                   userId = userId
                    text = createMessageModel.Text |}
 
-            let! createdMessage = connection.QuerySingleOrDefaultAsync<Message>(sql, sqlParams)
+            let! createdMessage = connection.QuerySingleOrDefaultAsync<MessageModel>(sql, sqlParams)
+
             return createdMessage
         }
 
@@ -80,8 +82,12 @@ module ChatDb =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
-            let sql = """SELECT * FROM "Messages" WHERE "ChatId" = @chatId"""
+            let sql =
+                """SELECT "Messages".*, "Users"."Nickname" as "UserNickname" FROM "Messages" 
+                    LEFT JOIN "Users" on "Messages"."UserId"="Users"."Id"
+                    WHERE "ChatId"= @chatId"""
+
             let data = {| chatId = chatId |}
-            let! messages = connection.QueryAsync<Message>(sql, data)
+            let! messages = connection.QueryAsync<MessageModel>(sql, data)
             return messages
         }

@@ -30,4 +30,15 @@ module Migrations =
                 FOREIGN KEY ("ChatId")
                     REFERENCES "Chats" ("ChatId")
             );
-        """ |]
+        """
+           """
+            CREATE TABLE "Users"(
+                "Id" VARCHAR(50) PRIMARY KEY,
+                "Email" VARCHAR(500),
+                "Nickname" VARCHAR(500)
+            );
+
+            ALTER TABLE "Messages"
+            DROP COLUMN "Sender",
+            ADD COLUMN "UserId" VARCHAR(50) NOT NULL REFERENCES "Users"("Id");
+         """ |]

@@ -17,6 +17,7 @@
     <Compile Include="Models.fs" />
     <Compile Include="sql/Migrations.fs" />
     <Compile Include="sql/ChatDb.fs" />
+    <Compile Include="sql/UserDb.fs" />
     <Compile Include="Hub.fs" />
     <Compile Include="HttpHandlers.fs" />
     <Compile Include="Routing.fs" />
