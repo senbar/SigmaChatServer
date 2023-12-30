@@ -64,7 +64,7 @@ module ChatDb =
 
             let sql =
                 """
-                WITH new_message AS (INSERT INTO "Messages" ("ChatId", "UserId", "Text", "DateCreated") VALUES (@chatId, @userId, @text, CURRENT_DATE) RETURNING *),
+                WITH new_message AS (INSERT INTO "Messages" ("ChatId", "UserId", "Text", "DateCreated") VALUES (@chatId, @userId, @text, NOW()) RETURNING *),
                 message_model as (SELECT new_message.*, "Users"."Nickname" AS "UserNickname" FROM new_message LEFT JOIN "Users" ON new_message."UserId" = "Users"."Id" )
                 SELECT message_model.* from message_model;"""
 
@@ -85,7 +85,8 @@ module ChatDb =
             let sql =
                 """SELECT "Messages".*, "Users"."Nickname" as "UserNickname" FROM "Messages" 
                     LEFT JOIN "Users" on "Messages"."UserId"="Users"."Id"
-                    WHERE "ChatId"= @chatId"""
+                    WHERE "ChatId"= @chatId
+                    ORDER BY "MessageId";"""
 
             let data = {| chatId = chatId |}
             let! messages = connection.QueryAsync<MessageModel>(sql, data)
