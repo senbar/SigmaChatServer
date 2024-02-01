@@ -12,13 +12,16 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.0" />
     <PackageReference Include="Microsoft.IdentityModel" Version="7.0.0" />
     <PackageReference Include="Npgsql" Version="8.0.0" />
+    <PackageReference Include="WebPush" Version="1.0.12" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Models.fs" />
     <Compile Include="sql/Migrations.fs" />
     <Compile Include="sql/ChatDb.fs" />
     <Compile Include="sql/UserDb.fs" />
+    <Compile Include="sql\WebPushDb.fs" />
     <Compile Include="Hub.fs" />
+    <Compile Include="WebPush.fs" />
     <Compile Include="HttpHandlers.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="Program.fs" />

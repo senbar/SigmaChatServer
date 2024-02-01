@@ -13,6 +13,9 @@ type MessageModel =
 type CreateMessageModel = { ChatId: int; Text: string }
 
 [<CLIMutable>]
+type WebPushSubscriptionModel = { ChatId: int; Json: string }
+
+[<CLIMutable>]
 type Chat =
     { ChatId: int
       Messages: List<MessageModel> }

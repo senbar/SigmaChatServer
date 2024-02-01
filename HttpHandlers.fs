@@ -8,6 +8,7 @@ module HttpHandlers =
     open SigmaChatServer.ChatDb
     open System.Data
     open System
+    open SigmaChatServer.WebPush
     open Hub
     open Microsoft.AspNetCore.SignalR
     open UserDb
@@ -16,7 +17,11 @@ module HttpHandlers =
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
             let! chat = getChat ctx chatId
-            return! json chat next ctx
+
+            return!
+                match chat with
+                | Some chat -> json chat next ctx
+                | None -> json (RequestErrors.NOT_FOUND(text "Basic")) next ctx
         }
 
     let handlePostChat (next: HttpFunc) (ctx: HttpContext) =
@@ -42,7 +47,6 @@ module HttpHandlers =
     let handlePostMessage (next: HttpFunc) (ctx: HttpContext) =
         task {
             let hub = ctx.GetService<IHubContext<ChatHub>>()
-            let! createMessageModel = ctx.BindJsonAsync<CreateMessageModel>()
             let userId = ctx.User.Identity.Name
 
             let processTooShortMessage () =
@@ -50,10 +54,14 @@ module HttpHandlers =
 
             let processCorrectMessage model =
                 task {
-                    let! createdMessage = postMessage ctx model userId
+                    let! createdMessage = insertMessage ctx model userId
                     do! notifyNewMessageCreated hub createdMessage
+                    do! webpushMessageForUser ctx userId model
+
                     return! json createdMessage next ctx
                 }
+
+            let! createMessageModel = ctx.BindJsonAsync<CreateMessageModel>()
 
             return!
                 match createMessageModel with

@@ -29,7 +29,7 @@ module ChatDb =
     let lastMigrationVersion (connection: IDbConnection) =
         task {
             try
-                let! version = connection.QueryFirstOrDefaultAsync<{| Version: int |}>(GetVersion)
+                let! version = connection.QueryFirstAsync<{| Version: int |}>(GetVersion)
                 return version.Version
             with _ ->
                 return 0
@@ -46,8 +46,12 @@ module ChatDb =
             use connection = ctx.GetService<IDbConnection>()
             let sql = """SELECT * FROM "Chats" WHERE "ChatId" = @chatId"""
             let data = {| chatId = chatId |}
-            let! chat = connection.QueryFirstOrDefaultAsync<Chat>(sql, data)
-            return chat
+
+            try
+                let! chat = connection.QueryFirstAsync<Chat>(sql, data)
+                return Some chat
+            with :? InvalidOperationException ->
+                return None
         }
 
     let postChat (ctx: HttpContext) =
@@ -58,7 +62,7 @@ module ChatDb =
             return id
         }
 
-    let postMessage (ctx: HttpContext) (createMessageModel: CreateMessageModel) (userId: string) =
+    let insertMessage (ctx: HttpContext) (createMessageModel: CreateMessageModel) (userId: string) =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
