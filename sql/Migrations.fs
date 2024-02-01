@@ -13,7 +13,7 @@ module Migrations =
             CREATE TABLE "Migrations"(
                 "Version" INT PRIMARY KEY
             );
-        """
+            """
            """
             CREATE TABLE "Chats"(
                 "ChatId" serial PRIMARY KEY
@@ -30,7 +30,7 @@ module Migrations =
                 FOREIGN KEY ("ChatId")
                     REFERENCES "Chats" ("ChatId")
             );
-        """
+            """
            """
             CREATE TABLE "Users"(
                 "Id" VARCHAR(50) PRIMARY KEY,
@@ -41,4 +41,14 @@ module Migrations =
             ALTER TABLE "Messages"
             DROP COLUMN "Sender",
             ADD COLUMN "UserId" VARCHAR(50) NOT NULL REFERENCES "Users"("Id");
-         """ |]
+            """
+           """
+            CREATE TABLE "PushSubscriptions"(
+                "Id" serial PRIMARY KEY,
+                "UserId" VARCHAR(50),
+                "Json" VARCHAR(4000),
+                "DateCreated" TIMESTAMP NOT NULL,
+                FOREIGN KEY ("UserId")
+                    REFERENCES "Users" ("Id")
+            );
+            """ |]
