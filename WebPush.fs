@@ -53,7 +53,11 @@ module WebPush =
             return!
                 subscriptionEntities
                 |> Seq.map (fun a -> parseSubscription a.Json)
-                |> Seq.map (fun a -> pushPayload a vapidDetails payload)
+                |> Seq.map (fun a ->
+                    try
+                        pushPayload a vapidDetails payload
+                    with _ ->
+                        task { return () })
                 |> Task.WhenAll
         }
 
