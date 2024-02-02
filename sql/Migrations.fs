@@ -51,4 +51,15 @@ module Migrations =
                 FOREIGN KEY ("UserId")
                     REFERENCES "Users" ("Id")
             );
+            """
+           """
+           DROP TABLE "PushSubscriptions";
+
+            CREATE TABLE "PushSubscriptions"(
+                "UserId" VARCHAR(50) PRIMARY KEY,
+                "Json" VARCHAR(4000),
+                "DateCreated" TIMESTAMP NOT NULL,
+                FOREIGN KEY ("UserId")
+                    REFERENCES "Users" ("Id")
+            );
             """ |]

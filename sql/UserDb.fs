@@ -56,3 +56,14 @@ module UserDb =
 
             return optioned
         }
+    
+    let getAllUserIds (ctx: HttpContext) =
+        task {
+            use connection = ctx.GetService<IDbConnection>()
+
+            let sql = """SELECT "Id" FROM "Users";"""
+
+            let! userIds = connection.QueryAsync<string>(sql)
+            return userIds
+        }
+    

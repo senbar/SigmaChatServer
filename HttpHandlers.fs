@@ -55,8 +55,9 @@ module HttpHandlers =
             let processCorrectMessage model =
                 task {
                     let! createdMessage = insertMessage ctx model userId
+                    let! allUserids = getAllUserIds ctx
                     do! notifyNewMessageCreated hub createdMessage
-                    do! webpushMessageForUser ctx userId model
+                    let! _ = webpushMessageForUser ctx allUserids model
 
                     return! json createdMessage next ctx
                 }

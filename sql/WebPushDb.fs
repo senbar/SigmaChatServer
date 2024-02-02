@@ -9,13 +9,16 @@ module WebPushDb =
     open System
     open Microsoft.FSharp.Core
 
-    let insertSubscription (ctx: HttpContext) (json: string) (userId: string) =
+    let upsertSubscription (ctx: HttpContext) (json: string) (userId: string) =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
             let sql =
                 """
-                INSERT INTO "PushSubscriptions" ( "UserId", "Json", "DateCreated") VALUES ( @userId, @json, NOW());
+                INSERT INTO "PushSubscriptions" ( "UserId", "Json", "DateCreated") VALUES ( @userId, @json, NOW())
+                ON CONFLICT ("UserId") DO UPDATE 
+                    SET "Json" = EXCLUDED."Json", 
+                        "DateCreated" = EXCLUDED."DateCreated";;
                 """
 
             let sqlParams = {| userId = userId; json = json |}
@@ -25,31 +28,32 @@ module WebPushDb =
             return ()
         }
 
-    let getSubscription (ctx: HttpContext) (userId: string) =
+    let getSubscriptions (ctx: HttpContext) (userId: string seq) =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
-            //WHERE "UserId"= @userId
             let sql =
-                """SELECT * FROM "PushSubscriptions" 
-                    ORDER BY "DateCreated" DESC
-                    LIMIT 1;"""
+                """WITH LatestSubscriptions AS (
+                    SELECT "UserId", MAX("DateCreated") AS MaxDate
+                    FROM "PushSubscriptions"
+                    WHERE "UserId" = ANY(@userIds)
+                    GROUP BY "UserId"
+                )
+                SELECT PS.*
+                FROM "PushSubscriptions" PS
+                INNER JOIN LatestSubscriptions LS ON PS."UserId" = LS."UserId" AND PS."DateCreated" = LS.MaxDate;"""
 
-            let data = {| userId = userId |}
+            let data = {| userIds = userId |}
 
-            try
-                let! subscription = connection.QueryFirstAsync<WebPushSubscriptionModel>(sql, data)
-                return Some subscription
-            with :? InvalidOperationException ->
-                return None
+            let! subscription = connection.QueryAsync<WebPushSubscriptionModel>(sql, data)
+            return subscription
         }
 
     let getAllSubscriptions (ctx: HttpContext) =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
-            let sql =
-                """SELECT * FROM "PushSubscriptions";"""
+            let sql = """SELECT * FROM "PushSubscriptions";"""
 
             let! subscriptions = connection.QueryAsync<WebPushSubscriptionModel>(sql)
             return subscriptions

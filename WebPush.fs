@@ -37,9 +37,9 @@ module WebPush =
             j.SelectToken "keys.auth" |> string
         )
 
-    let webpushMessageForUser (ctx: HttpContext) (userId: string) (createdMessageModel: CreateMessageModel) =
+    let webpushMessageForUser (ctx: HttpContext) (userIds: string seq) (createdMessageModel: CreateMessageModel) =
         task {
-            let! subscriptionEntity = getSubscription ctx userId
+            let! subscriptionEntities = getSubscriptions ctx userIds
             let configuration = ctx.GetService<IConfiguration>()
 
             let payload =
@@ -48,14 +48,13 @@ module WebPush =
                        // probable svg wont work todo test this
                        icon = "https://sigmachat.cc/cc.svg" |}
 
+            let vapidDetails = getVapidDetails configuration
+
             return!
-                match subscriptionEntity with
-                // todo add logging
-                | None -> task { return () }
-                | Some sub ->
-                    let parsedSubscription = parseSubscription sub.Json
-                    let vapidDetails = getVapidDetails configuration
-                    pushPayload parsedSubscription vapidDetails payload
+                subscriptionEntities
+                |> Seq.map (fun a -> parseSubscription a.Json)
+                |> Seq.map (fun a -> pushPayload a vapidDetails payload)
+                |> Task.WhenAll
         }
 
     let handleNewSubscription (next: HttpFunc) (ctx: HttpContext) =
@@ -63,7 +62,7 @@ module WebPush =
             let userId = ctx.User.Identity.Name
             let! subJson = ctx.ReadBodyFromRequestAsync()
 
-            do! insertSubscription ctx subJson userId
+            do! upsertSubscription ctx subJson userId
 
             return! json None next ctx
         }
@@ -93,7 +92,7 @@ module WebPush =
                     {| title = message
                        options = {| body = message |} |}
 
-            let! z =
+            let! _ =
                 Task.WhenAll(
                     subs
                     |> Seq.map (fun subscription -> pushPayload subscription vapidDetails payload)
