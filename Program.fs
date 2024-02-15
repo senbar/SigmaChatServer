@@ -23,6 +23,10 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Authentication.JwtBearer
 open Hub
 open Microsoft.IdentityModel.Claims
+open Dapper.Extensions
+open Newtonsoft.Json
+open Microsoft.FSharpLu.Json
+open Newtonsoft.Json.Serialization
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -70,6 +74,9 @@ let configureApp (app: IApplicationBuilder) =
         .UseGiraffe(webApp)
 
 let configureServices (services: IServiceCollection) =
+    // stupid dapper config
+    registerTypeHandlers () |> ignore
+
     services.AddTransient<IDbConnection>(fun serviceProvider ->
         // The configuration information is in appsettings.json
         let settings = serviceProvider.GetService<IConfiguration>()
@@ -109,6 +116,14 @@ let configureServices (services: IServiceCollection) =
 
     // services.AddSingleton<IAuthorizationHandler, RbacHandler>()
     services.AddGiraffe() |> ignore
+
+    let customSettings = JsonSerializerSettings()
+    customSettings.ContractResolver <- CamelCasePropertyNamesContractResolver()
+    // this is for options serializing striaght to just/null values
+    customSettings.Converters.Add(CompactUnionJsonConverter(true))
+
+    services.AddSingleton<Json.ISerializer>(NewtonsoftJson.Serializer(customSettings))
+    |> ignore
 
 let configureLogging (builder: ILoggingBuilder) =
     builder.AddConsole().AddDebug() |> ignore
