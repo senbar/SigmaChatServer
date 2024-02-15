@@ -21,8 +21,14 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.IdentityModel.Tokens
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Authentication.JwtBearer
+open Azure.Storage.Blobs
 open Hub
 open Microsoft.IdentityModel.Claims
+open Azure.Storage.Blobs.Models
+open Dapper.Extensions
+open Newtonsoft.Json
+open Microsoft.FSharpLu.Json
+open Newtonsoft.Json.Serialization
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -70,11 +76,31 @@ let configureApp (app: IApplicationBuilder) =
         .UseGiraffe(webApp)
 
 let configureServices (services: IServiceCollection) =
+    // stupid dapper config
+    registerTypeHandlers () |> ignore
+
     services.AddTransient<IDbConnection>(fun serviceProvider ->
         // The configuration information is in appsettings.json
         let settings = serviceProvider.GetService<IConfiguration>()
         let connection = new NpgsqlConnection(settings.["DbConnectionString"])
         upcast connection)
+    |> ignore
+
+    services.AddTransient<BlobContainerClient>(fun serviceProvider ->
+        let settings = serviceProvider.GetService<IConfiguration>()
+        let connectionString = settings.["BlobConnectionString"]
+
+        let blobServiceClient =
+            new BlobServiceClient(
+                connectionString,
+                // Azurite seems to be working only with API version 2021-12-02
+                new BlobClientOptions(BlobClientOptions.ServiceVersion.V2021_12_02)
+            )
+
+        let containerClient = blobServiceClient.GetBlobContainerClient("images")
+        do containerClient.CreateIfNotExists(PublicAccessType.Blob) |> ignore
+
+        containerClient)
     |> ignore
 
     services.AddCors() |> ignore
@@ -109,6 +135,14 @@ let configureServices (services: IServiceCollection) =
 
     // services.AddSingleton<IAuthorizationHandler, RbacHandler>()
     services.AddGiraffe() |> ignore
+
+    let customSettings = JsonSerializerSettings()
+    customSettings.ContractResolver <- CamelCasePropertyNamesContractResolver()
+    // this is for options serializing striaght to just/null values
+    customSettings.Converters.Add(CompactUnionJsonConverter(true))
+
+    services.AddSingleton<Json.ISerializer>(NewtonsoftJson.Serializer(customSettings))
+    |> ignore
 
 let configureLogging (builder: ILoggingBuilder) =
     builder.AddConsole().AddDebug() |> ignore

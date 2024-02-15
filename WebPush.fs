@@ -4,8 +4,7 @@ module WebPush =
     open WebPush
     open Microsoft.AspNetCore.Http
     open Giraffe
-    open ChatDb
-    open WebPushDb
+    open WebPushQueries
     open Microsoft.Extensions.Configuration
     open SigmaChatServer.Models
     open System.Text.Json.Nodes

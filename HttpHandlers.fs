@@ -5,13 +5,13 @@ module HttpHandlers =
     open Microsoft.AspNetCore.Http
     open Giraffe
     open SigmaChatServer.Models
-    open SigmaChatServer.ChatDb
+    open SigmaChatServer.ChatQueries
     open System.Data
     open System
     open SigmaChatServer.WebPush
     open Hub
     open Microsoft.AspNetCore.SignalR
-    open UserDb
+    open UserQueries
     open System.Threading.Tasks
 
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =

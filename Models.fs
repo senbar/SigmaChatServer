@@ -6,7 +6,8 @@ open System
 type MessageModel =
     { MessageId: int
       ChatId: int
-      UserNickname: string
+      UserNickname: string option
+      UserProfilePicture: string option
       Text: string
       DateCreated: DateTime }
 
@@ -23,8 +24,9 @@ type Chat =
 [<CLIMutable>]
 type User =
     { Id: string
-      Email: string
-      Nickname: string }
+      Email: string option
+      Nickname: string
+      ProfilePictureBlob: string option }
 
 [<CLIMutable>]
 type UpdateMeModel = { Nickname: string }

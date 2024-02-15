@@ -1,6 +1,6 @@
 namespace SigmaChatServer
 
-module WebPushDb =
+module WebPushQueries =
     open Microsoft.AspNetCore.Http
     open Giraffe
     open System.Data

@@ -1,6 +1,6 @@
 namespace SigmaChatServer
 
-module ChatDb =
+module ChatQueries =
 
     open SigmaChatServer.Models
     open Microsoft.AspNetCore.Http
@@ -41,19 +41,6 @@ module ChatDb =
             return! version |> generateMigrationScript Migrations |> connection.QueryAsync
         }
 
-    let getChat (ctx: HttpContext) (chatId: int) =
-        task {
-            use connection = ctx.GetService<IDbConnection>()
-            let sql = """SELECT * FROM "Chats" WHERE "ChatId" = @chatId"""
-            let data = {| chatId = chatId |}
-
-            try
-                let! chat = connection.QueryFirstAsync<Chat>(sql, data)
-                return Some chat
-            with :? InvalidOperationException ->
-                return None
-        }
-
     let postChat (ctx: HttpContext) =
         task {
             use connection = ctx.GetService<IDbConnection>()
@@ -87,12 +74,27 @@ module ChatDb =
             use connection = ctx.GetService<IDbConnection>()
 
             let sql =
-                """SELECT "Messages".*, "Users"."Nickname" as "UserNickname" FROM "Messages" 
-                    LEFT JOIN "Users" on "Messages"."UserId"="Users"."Id"
+                """SELECT "Messages".*, "Users"."Nickname" as "UserNickname", "UserProfilePictures"."BlobName" as "UserProfilePicture" FROM "Messages" 
+                    LEFT JOIN "Users" ON "Messages"."UserId"="Users"."Id"
+                    LEFT JOIN "UserProfilePictures" ON "Users"."Id" = "UserProfilePictures"."UserId"
                     WHERE "ChatId"= @chatId
-                    ORDER BY "MessageId";"""
+                    ORDER BY "MessageId" ;"""
 
             let data = {| chatId = chatId |}
+
             let! messages = connection.QueryAsync<MessageModel>(sql, data)
             return messages
+        }
+
+    let getChat (ctx: HttpContext) (chatId: int) =
+        task {
+            let! messages = getMessages ctx chatId
+
+            try
+                return
+                    Some
+                        { ChatId = chatId
+                          Messages = messages |> Seq.toList }
+            with :? InvalidOperationException ->
+                return None
         }
