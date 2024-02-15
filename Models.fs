@@ -7,6 +7,7 @@ type MessageModel =
     { MessageId: int
       ChatId: int
       UserNickname: string option
+      UserProfilePicture: string option
       Text: string
       DateCreated: DateTime }
 
@@ -24,7 +25,8 @@ type Chat =
 type User =
     { Id: string
       Email: string option
-      Nickname: string }
+      Nickname: string
+      ProfilePictureBlob: string option }
 
 [<CLIMutable>]
 type UpdateMeModel = { Nickname: string }

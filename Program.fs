@@ -21,8 +21,10 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.IdentityModel.Tokens
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Authentication.JwtBearer
+open Azure.Storage.Blobs
 open Hub
 open Microsoft.IdentityModel.Claims
+open Azure.Storage.Blobs.Models
 open Dapper.Extensions
 open Newtonsoft.Json
 open Microsoft.FSharpLu.Json
@@ -82,6 +84,23 @@ let configureServices (services: IServiceCollection) =
         let settings = serviceProvider.GetService<IConfiguration>()
         let connection = new NpgsqlConnection(settings.["DbConnectionString"])
         upcast connection)
+    |> ignore
+
+    services.AddTransient<BlobContainerClient>(fun serviceProvider ->
+        let settings = serviceProvider.GetService<IConfiguration>()
+        let connectionString = settings.["BlobConnectionString"]
+
+        let blobServiceClient =
+            new BlobServiceClient(
+                connectionString,
+                // Azurite seems to be working only with API version 2021-12-02
+                new BlobClientOptions(BlobClientOptions.ServiceVersion.V2021_12_02)
+            )
+
+        let containerClient = blobServiceClient.GetBlobContainerClient("images")
+        do containerClient.CreateIfNotExists(PublicAccessType.Blob) |> ignore
+
+        containerClient)
     |> ignore
 
     services.AddCors() |> ignore

@@ -1,13 +1,12 @@
 namespace SigmaChatServer
 
-module UserDb =
+module UserQueries =
     open Microsoft.AspNetCore.Http
     open Giraffe
     open System.Data
     open Dapper
     open SigmaChatServer.Models
     open System
-    open Microsoft.FSharp.Core
 
     let createUser (ctx: HttpContext) (userId: string) =
         task {
@@ -43,7 +42,10 @@ module UserDb =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
-            let sql = """SELECT * FROM "Users" WHERE "Id" = @userId;"""
+            let sql =
+                """SELECT "Users".*, "UserProfilePictures"."BlobName" as "ProfilePictureBlob" FROM "Users" 
+                LEFT JOIN "UserProfilePictures" ON "Id" = "UserId"
+                WHERE "Id" = @userId;"""
 
             let sqlParams = {| userId = userId |}
 
@@ -56,7 +58,7 @@ module UserDb =
 
             return optioned
         }
-    
+
     let getAllUserIds (ctx: HttpContext) =
         task {
             use connection = ctx.GetService<IDbConnection>()
@@ -66,4 +68,25 @@ module UserDb =
             let! userIds = connection.QueryAsync<string>(sql)
             return userIds
         }
-    
+
+    type ProfilePictureModel =
+        { UserId: string
+          BlobName: string
+          OriginalFilename: string }
+
+    let upsertProfilePicture (ctx: HttpContext) (model: ProfilePictureModel) =
+        task {
+            use connection = ctx.GetService<IDbConnection>()
+
+            let sql =
+                """
+                INSERT INTO "UserProfilePictures" ("UserId", "BlobName", "OriginalFilename", "DateCreated")
+                VALUES (@userId, @blobName, @originalFilename, NOW())
+                ON CONFLICT ("UserId") DO UPDATE
+                    SET "BlobName" = EXCLUDED."BlobName",
+                        "OriginalFilename" = EXCLUDED."OriginalFilename",
+                        "DateCreated" = NOW();
+            """
+
+            return! connection.QueryAsync(sql, model)
+        }

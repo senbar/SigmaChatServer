@@ -6,6 +6,7 @@
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
     <PackageReference Include="Dapper" Version="2.1.28" />
     <PackageReference Include="Giraffe" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNet.SignalR" Version="2.4.3" />
@@ -20,12 +21,13 @@
     <Compile Include="DapperHelper.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="sql/Migrations.fs" />
-    <Compile Include="sql/ChatDb.fs" />
-    <Compile Include="sql/UserDb.fs" />
-    <Compile Include="sql\WebPushDb.fs" />
+    <Compile Include="sql\ChatQueries.fs" />
+    <Compile Include="sql\UserQueries.fs" />
+    <Compile Include="sql\WebPushQueries.fs" />
     <Compile Include="Hub.fs" />
     <Compile Include="WebPush.fs" />
     <Compile Include="HttpHandlers.fs" />
+    <Compile Include="BlobHandlers.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

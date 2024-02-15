@@ -53,7 +53,7 @@ module Migrations =
             );
             """
            """
-           DROP TABLE "PushSubscriptions";
+            DROP TABLE "PushSubscriptions";
 
             CREATE TABLE "PushSubscriptions"(
                 "UserId" VARCHAR(50) PRIMARY KEY,
@@ -62,4 +62,16 @@ module Migrations =
                 FOREIGN KEY ("UserId")
                     REFERENCES "Users" ("Id")
             );
+             """
+           """
+            CREATE TABLE "UserProfilePictures"(
+                "UserId" VARCHAR(50) PRIMARY KEY,
+                "BlobName" VARCHAR(50) NOT NULL,
+                "DateCreated" TIMESTAMP NOT NULL,
+                "OriginalFilename" VARCHAR(255) NOT NULL,
+                FOREIGN KEY ("UserId")
+                    REFERENCES "Users" ("Id")
+            );
+            
+            CREATE UNIQUE INDEX idx_UserProfilePictures_BlobName ON "UserProfilePictures" ("BlobName");
             """ |]

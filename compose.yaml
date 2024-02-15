@@ -17,6 +17,18 @@ services:
       - POSTGRES_DB=SigmaChatDb
     networks:
       - sigmaChat
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    hostname: azurite
+    restart: always
+
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    volumes:
+      - ./azurite:/workspace
+    env_file:
+      - ./azurite.env
 
 volumes:
   sql_data:

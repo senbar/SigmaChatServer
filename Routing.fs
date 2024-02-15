@@ -6,6 +6,7 @@ module Routing =
     open Microsoft.AspNetCore.Http
     open HttpHandlers
     open WebPush
+    open BlobHandlers
 
     let notLoggedIn = RequestErrors.UNAUTHORIZED "Basic" "" "You must be logged in."
 
@@ -25,9 +26,11 @@ module Routing =
                         subRoute "/db" (choose [ GET >=> updateSchema ])
                         subRoute "/messages" mustBeLoggedIn >=> (messages)
                         subRoute "/user/me" mustBeLoggedIn
-                        >=> (choose [ GET >=> handleGetUserMe; PATCH >=> handleUpdateMeProfile ])
+                        >=> (choose
+                            [ subRoute "/profile-picture" POST >=> profilePictureUploadHandler
+                              GET >=> handleGetUserMe
+                              PATCH >=> handleUpdateMeProfile ])
                         subRoute "/callback" mustBeLoggedIn >=> (handleCallback)
                         subRoute "/web-push/subscribe" mustBeLoggedIn >=> (handleNewSubscription)
                         subRoute "/web-push/key" mustBeLoggedIn >=> (handleGetVapidKey) ])
-              // subRoute "/web-push/custom-message" mustBeLoggedIn >=> (handlePushCustomMessage) ])
               setStatusCode 404 >=> text "Not Found" ]
