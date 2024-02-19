@@ -38,10 +38,16 @@ module HttpHandlers =
             return! json Ok next ctx
         }
 
-    let handleGetMessages (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
+    let handleGetMessages (chatId: int, paginationDate: string) (next: HttpFunc) (ctx: HttpContext) =
         task {
-            let! chat = getMessages ctx chatId
-            return! json chat next ctx
+            return!
+                match DateTime.TryParse(paginationDate) with
+                | true, date ->
+                    task {
+                        let! messages = getMessages ctx chatId (date.ToUniversalTime())
+                        return! json messages next ctx
+                    }
+                | _ -> RequestErrors.BAD_REQUEST (text "Couldnt parse pagination date") next ctx
         }
 
     let handlePostMessage (next: HttpFunc) (ctx: HttpContext) =

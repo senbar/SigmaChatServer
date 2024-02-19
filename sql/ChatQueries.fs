@@ -69,18 +69,22 @@ module ChatQueries =
             return createdMessage
         }
 
-    let getMessages (ctx: HttpContext) (chatId: int) =
+    let getMessages (ctx: HttpContext) (chatId: int) (paginationDate: DateTime) =
         task {
             use connection = ctx.GetService<IDbConnection>()
 
             let sql =
-                """SELECT "Messages".*, "Users"."Nickname" as "UserNickname", "UserProfilePictures"."BlobName" as "UserProfilePicture" FROM "Messages" 
+                """SELECT * FROM (SELECT "Messages".*, "Users"."Nickname" as "UserNickname", "UserProfilePictures"."BlobName" as "UserProfilePicture" FROM "Messages" 
                     LEFT JOIN "Users" ON "Messages"."UserId"="Users"."Id"
                     LEFT JOIN "UserProfilePictures" ON "Users"."Id" = "UserProfilePictures"."UserId"
-                    WHERE "ChatId"= @chatId
-                    ORDER BY "MessageId" ;"""
+                    WHERE "ChatId"= @chatId AND "Messages"."DateCreated" < @paginationDate
+                    ORDER BY "MessageId" DESC 
+                    LIMIT 30)
+                    ORDER BY "MessageId" ASC;"""
 
-            let data = {| chatId = chatId |}
+            let data =
+                {| chatId = chatId
+                   paginationDate = paginationDate |}
 
             let! messages = connection.QueryAsync<MessageModel>(sql, data)
             return messages
@@ -88,7 +92,7 @@ module ChatQueries =
 
     let getChat (ctx: HttpContext) (chatId: int) =
         task {
-            let! messages = getMessages ctx chatId
+            let! messages = getMessages ctx chatId DateTime.UtcNow
 
             try
                 return

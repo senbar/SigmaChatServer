@@ -14,7 +14,7 @@ module Routing =
         requiresAuthentication notLoggedIn
 
     let messages: HttpFunc -> HttpContext -> HttpFuncResult =
-        choose [ GET >=> routef "/%i" handleGetMessages; POST >=> handlePostMessage ]
+        choose [ GET >=> routef "/%i/%s" handleGetMessages; POST >=> handlePostMessage ]
 
     let routing: HttpFunc -> HttpContext -> HttpFuncResult =
         choose
