@@ -14,6 +14,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.16" />
     <PackageReference Include="Microsoft.FSharpLu.Json" Version="0.11.7" />
     <PackageReference Include="Microsoft.IdentityModel" Version="7.0.0" />
+    <PackageReference Include="Minio" Version="6.0.2" />
     <PackageReference Include="Npgsql" Version="8.0.2" />
     <PackageReference Include="WebPush" Version="1.0.12" />
   </ItemGroup>
@@ -26,8 +27,8 @@
     <Compile Include="sql\WebPushQueries.fs" />
     <Compile Include="Hub.fs" />
     <Compile Include="WebPush.fs" />
-    <Compile Include="HttpHandlers.fs" />
     <Compile Include="BlobHandlers.fs" />
+    <Compile Include="HttpHandlers.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

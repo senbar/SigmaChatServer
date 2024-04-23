@@ -29,6 +29,8 @@ open Dapper.Extensions
 open Newtonsoft.Json
 open Microsoft.FSharpLu.Json
 open Newtonsoft.Json.Serialization
+open Minio
+open Minio.DataModel.Args
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -86,21 +88,23 @@ let configureServices (services: IServiceCollection) =
         upcast connection)
     |> ignore
 
-    services.AddTransient<BlobContainerClient>(fun serviceProvider ->
+    services.AddTransient<IMinioClient>(fun serviceProvider ->
         let settings = serviceProvider.GetService<IConfiguration>()
-        let connectionString = settings.["BlobConnectionString"]
 
-        let blobServiceClient =
-            new BlobServiceClient(
-                connectionString,
-                // Azurite seems to be working only with API version 2021-12-02
-                new BlobClientOptions(BlobClientOptions.ServiceVersion.V2021_12_02)
-            )
+        let minioSection = settings.GetSection("Minio")
+        let endpoint = minioSection.["Endpoint"]
+        let publicKey = minioSection.["AccessKey"]
+        let secretKey = minioSection.["SecretKey"]
 
-        let containerClient = blobServiceClient.GetBlobContainerClient("images")
-        do containerClient.CreateIfNotExists(PublicAccessType.Blob) |> ignore
+        let blobServiceClient = new MinioClient()
 
-        containerClient)
+        let client =
+            blobServiceClient
+                .WithEndpoint(endpoint)
+                .WithCredentials(publicKey, secretKey)
+                .Build()
+
+        client)
     |> ignore
 
     services.AddCors() |> ignore
@@ -124,16 +128,6 @@ let configureServices (services: IServiceCollection) =
             options.TokenValidationParameters <- TokenValidationParameters(NameClaimType = ClaimTypes.NameIdentifier))
     |> ignore
 
-    // services.AddAuthorization() |> ignore
-    // => options {
-    //     options.AddPolicy(
-    //         "read:admin-messages",
-    //         => policy { policy.Requirements.Add(new RbacRequirement("read:admin-messages")) }
-    //     )
-    // }
-
-
-    // services.AddSingleton<IAuthorizationHandler, RbacHandler>()
     services.AddGiraffe() |> ignore
 
     let customSettings = JsonSerializerSettings()
@@ -159,4 +153,5 @@ let main args =
             |> ignore)
         .Build()
         .Run()
+
     0

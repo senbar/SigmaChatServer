@@ -12,7 +12,11 @@ module HttpHandlers =
     open Hub
     open Microsoft.AspNetCore.SignalR
     open UserQueries
+    open SigmaChatServer.BlobHandlers
     open System.Threading.Tasks
+    open Microsoft.Extensions.Configuration
+    open Minio.DataModel.Args
+    open Minio
 
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
@@ -34,7 +38,41 @@ module HttpHandlers =
     let updateSchema (next: HttpFunc) (ctx: HttpContext) =
         task {
             let connection = ctx.GetService<IDbConnection>()
-            let! res = setupDatabaseSchema connection
+
+            do setupDatabaseSchema connection |> ignore
+
+            let settings = ctx.GetService<IConfiguration>()
+            let client = ctx.GetService<IMinioClient>()
+            let minioSection = settings.GetSection("Minio")
+
+            let checkArgs =
+                (new BucketExistsArgs()).WithBucket(minioSection.["PublicBucketName"])
+
+            do
+                client.BucketExistsAsync(checkArgs)
+                |> (fun exists ->
+                    task {
+                        let! exists = exists
+
+                        return
+                            match exists with
+                            | false ->
+                                let createArgs =
+                                    (new MakeBucketArgs()).WithBucket(minioSection.["PublicBucketName"])
+
+                                let policy = minioSection.["Policy"]
+
+                                let policyArgs =
+                                    (new SetPolicyArgs())
+                                        .WithBucket(minioSection.["PublicBucketName"])
+                                        .WithPolicy(policy)
+
+                                client.MakeBucketAsync(createArgs) |> ignore
+                                client.SetPolicyAsync(policyArgs) |> ignore
+                            | true -> ()
+                    })
+                |> ignore
+
             return! json Ok next ctx
         }
 
@@ -67,6 +105,13 @@ module HttpHandlers =
 
                     return! json createdMessage next ctx
                 }
+
+            //Note: left for next story
+            // let handlePostAttachmentMessage (next:HttpFunc)(ctx: HttpContext)  model=
+            //     task{
+
+
+            //     }
 
             let! createMessageModel = ctx.BindJsonAsync<CreateMessageModel>()
 
@@ -103,9 +148,18 @@ module HttpHandlers =
             let userId = ctx.User.Identity.Name
             let! user = getUser ctx userId
 
+            let embelishWithProfileUrl (u: User) =
+                let configuration = ctx.GetService<IConfiguration>()
+
+                match u.ProfilePictureBlob with
+                | Some profilePictureBlob ->
+                    getPublicBlobUrl configuration profilePictureBlob
+                    |> fun url -> { u with ProfilePictureBlob = Some url }
+                | None -> u
+
             let res =
                 match user with
-                | Some u -> json u next ctx
+                | Some u -> json (u |> embelishWithProfileUrl) next ctx
                 | None -> RequestErrors.UNAUTHORIZED "Basic" "" "You must be logged in." next ctx
 
             return! res

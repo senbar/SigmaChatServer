@@ -256,4 +256,5 @@ paket-files/
 
 
 appsettings.*.json
+appsettings.json
 azurite.env
