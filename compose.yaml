@@ -5,7 +5,7 @@ services:
       - "5000:80"
     networks:
       - sigmaChat
-  sqlServer:
+  postgres:
     image: "postgres"
     volumes:
       - sql_data:/var/lib/mysql
@@ -18,7 +18,8 @@ services:
     networks:
       - sigmaChat
   minio:
-    image: docker.io/bitnami/minio:2022
+    image: minio/minio:latest 
+    entrypoint: ["sh", "-c", "minio server /data --console-address ':9001'"]
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -30,7 +31,6 @@ services:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=jhvhJHVH!
       - MINIO_DEFAULT_BUCKETS=jehovahs-pictures
-
 volumes:
   sql_data:
   minio_data:

@@ -254,7 +254,4 @@ paket-files/
 .idea/
 *.sln.iml
 
-
-appsettings.*.json
 appsettings.json
-azurite.env
