@@ -1,13 +1,32 @@
 namespace SigmaChatServer.Models
 
+open System
+
 [<CLIMutable>]
-type Message ={
-    Sender: string
-    Text: string
-}
+type MessageModel =
+    { MessageId: int
+      ChatId: int
+      UserNickname: string option
+      UserProfilePicture: string option
+      Text: string
+      DateCreated: DateTime }
+
+type CreateMessageModel = { ChatId: int; Text: string }
+
+[<CLIMutable>]
+type WebPushSubscriptionModel = { ChatId: int; Json: string }
 
 [<CLIMutable>]
 type Chat =
-    {
-        Messages: List<Message>
-    }
+    { ChatId: int
+      Messages: List<MessageModel> }
+
+[<CLIMutable>]
+type User =
+    { Id: string
+      Email: string option
+      Nickname: string
+      ProfilePictureBlob: string option }
+
+[<CLIMutable>]
+type UpdateMeModel = { Nickname: string }

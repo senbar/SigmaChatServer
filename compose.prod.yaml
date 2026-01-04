@@ -1,0 +1,41 @@
+# Everything incorrect todo fix
+
+services:
+  backend:
+    image: sigmaproductions/sigmachatserver:${IMAGE_TAG}
+    ports:
+      - "5000:80"
+    networks:
+      - sigmaChat
+  sqlServer:
+    image: "postgres"
+    volumes:
+      - sql_data:/var/lib/mysql
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=JHVHjhvh!
+      - POSTGRES_USER=sa
+      - POSTGRES_DB=SigmaChatDb
+    networks:
+      - sigmaChat
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    hostname: azurite
+    restart: always
+
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    volumes:
+      - azurite:/workspace
+    environment:
+      - AZURITE_ACCOUNTS=${AZURITE_ACCOUNTS}
+
+volumes:
+  sql_data:
+  azurite:
+
+networks:
+  sigmaChat:
+    name: sigmaChat

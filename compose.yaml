@@ -1,18 +1,41 @@
 services:
-  # web:
-  #   build: .
-  #   ports:
-  #     - "8000:5000"
-  sqlServer:
-    image: "mcr.microsoft.com/mssql/server"
-    volumes:
-      - sql_data:/var/lib/mysql
+  backend:
+    build: .
     ports:
-      - "1433:1433"
+      - "5000:80"
+    networks:
+      - sigmaChat
+  postgres:
+    image: "postgres"
+    volumes:
+      - sql_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     environment:
-      NAME: "SigmaChat"
-      MSSQL_SA_PASSWORD: "JHVHjhvh!"
-      ACCEPT_EULA: "Y"
-
+      - POSTGRES_PASSWORD=JHVHjhvh!
+      - POSTGRES_USER=sa
+      - POSTGRES_DB=SigmaChatDb
+    networks:
+      - sigmaChat
+  minio:
+    image: minio/minio:latest 
+    entrypoint: ["sh", "-c", "minio server /data --console-address ':9001'"]
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - sigmaChat
+    volumes:
+      - "minio_data:/data"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=jhvhJHVH!
+      - MINIO_DEFAULT_BUCKETS=jehovahs-pictures
 volumes:
   sql_data:
+  minio_data:
+    driver: local
+
+networks:
+  sigmaChat:
+    name: sigmaChat
