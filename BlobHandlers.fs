@@ -27,9 +27,10 @@ module BlobHandlers =
         | "image/gif" -> true
         | _ -> false
 
-    let getPublicBlobUrl (config: IConfiguration) blobName =
-        let minioSettings = config.GetSection("Minio")
-        minioSettings.GetValue<string>("PublicBucketUrl") + blobName
+    let getPublicBlobUrl (minioSettings: IConfiguration) blobName =
+        let domain = minioSettings.GetValue<string> "Endpoint"
+        let bucketName = minioSettings.GetValue<string> "PublicBucketName"
+        domain + "/" + bucketName + "/" + blobName
 
     let private processHttpFileRequest (next: HttpFunc) (ctx: HttpContext) handler =
         task {
@@ -49,20 +50,20 @@ module BlobHandlers =
     let private uploadProfilePicture (userId: string) (next: HttpFunc) (ctx: HttpContext) (file: IFormFile) =
         task {
             let containerClient = ctx.GetService<IMinioClient>()
-            let minioSettings = ctx.GetService<IConfiguration>().GetSection("Minio")
+            let minioSettings = ctx.GetService<IConfiguration>().GetSection "MinIO"
 
             let guid = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName)
 
             let fileModel =
                 { UserId = userId
                   BlobName = guid
-                  OriginalFilename = file.FileName }
 
+                  OriginalFilename = file.FileName }
             use stream = file.OpenReadStream()
 
             let putArgs =
                 (new PutObjectArgs())
-                    .WithBucket(minioSettings.GetValue<string>("PublicBucketName"))
+                    .WithBucket(minioSettings.GetValue<string> "PublicBucketName")
                     .WithObject(fileModel.BlobName)
                     .WithObjectSize(stream.Length)
                     .WithContentType(file.ContentType)

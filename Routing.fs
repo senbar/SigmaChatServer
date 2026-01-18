@@ -26,10 +26,10 @@ module Routing =
                         subRoute "/db" (choose [ GET >=> updateSchema ])
                         subRoute "/messages" mustBeLoggedIn >=> (messages)
                         subRoute "/user/me" mustBeLoggedIn
-                        >=> (choose
-                            [ subRoute "/profile-picture" POST >=> profilePictureUploadHandler
-                              GET >=> handleGetUserMe
-                              PATCH >=> handleUpdateMeProfile ])
+                        >=> choose
+                           [ subRoute "/profile-picture" POST >=> profilePictureUploadHandler
+                             GET >=> handleGetUserMe
+                             PATCH >=> handleUpdateMeProfile ]
                         subRoute "/callback" mustBeLoggedIn >=> (handleCallback)
                         subRoute "/web-push/subscribe" mustBeLoggedIn >=> (handleNewSubscription)
                         subRoute "/web-push/key" mustBeLoggedIn >=> (handleGetVapidKey) ])

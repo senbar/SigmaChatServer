@@ -34,44 +34,39 @@ module HttpHandlers =
             return! json chatId next ctx
         }
 
+    let setupMinIOBucket (ctx: HttpContext) =
+        task {
+            let settings = ctx.GetService<IConfiguration>()
+            let client = ctx.GetService<IMinioClient>()
+            let minioSection = settings.GetSection "MinIO"
+            let bucketName = minioSection.["PublicBucketName"]
+
+            let checkArgs = (new BucketExistsArgs()).WithBucket(bucketName)
+
+            let! exists = client.BucketExistsAsync(checkArgs)
+
+            if not exists then
+                let createArgs =
+                    (new MakeBucketArgs()).WithBucket(minioSection.["PublicBucketName"])
+
+                let policy = minioSection.["Policy"]
+
+                let policyArgs =
+                    (new SetPolicyArgs())
+                        .WithBucket(minioSection.["PublicBucketName"])
+                        .WithPolicy(policy)
+
+                do! client.MakeBucketAsync(createArgs)
+                do! client.SetPolicyAsync(policyArgs)
+        }
 
     let updateSchema (next: HttpFunc) (ctx: HttpContext) =
         task {
             let connection = ctx.GetService<IDbConnection>()
 
-            do setupDatabaseSchema connection |> ignore
+            let! _ = setupDatabaseSchema connection
 
-            let settings = ctx.GetService<IConfiguration>()
-            let client = ctx.GetService<IMinioClient>()
-            let minioSection = settings.GetSection("Minio")
-
-            let checkArgs =
-                (new BucketExistsArgs()).WithBucket(minioSection.["PublicBucketName"])
-
-            do
-                client.BucketExistsAsync(checkArgs)
-                |> (fun exists ->
-                    task {
-                        let! exists = exists
-
-                        return
-                            match exists with
-                            | false ->
-                                let createArgs =
-                                    (new MakeBucketArgs()).WithBucket(minioSection.["PublicBucketName"])
-
-                                let policy = minioSection.["Policy"]
-
-                                let policyArgs =
-                                    (new SetPolicyArgs())
-                                        .WithBucket(minioSection.["PublicBucketName"])
-                                        .WithPolicy(policy)
-
-                                client.MakeBucketAsync(createArgs) |> ignore
-                                client.SetPolicyAsync(policyArgs) |> ignore
-                            | true -> ()
-                    })
-                |> ignore
+            do! setupMinIOBucket ctx
 
             return! json Ok next ctx
         }
@@ -128,7 +123,7 @@ module HttpHandlers =
 
             let! resultingUser =
                 match userInDb with
-                | Some user -> Task.FromResult(user)
+                | Some user -> Task.FromResult user
                 | None -> createUser ctx userId
 
             return! json resultingUser next ctx
