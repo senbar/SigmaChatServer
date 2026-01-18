@@ -37,9 +37,15 @@ module ChatQueries =
 
     let setupDatabaseSchema (connection: IDbConnection) =
         task {
-            let! version = lastMigrationVersion connection
-            return! version |> generateMigrationScript Migrations |> connection.QueryAsync
-        }
+        let! version = lastMigrationVersion connection
+        let script = generateMigrationScript Migrations version
+
+        match script with
+            | sql when not (System.String.IsNullOrWhiteSpace sql) ->
+                return! connection.ExecuteAsync(sql)
+            | _ ->
+                return 0
+    }
 
     let postChat (ctx: HttpContext) =
         task {
