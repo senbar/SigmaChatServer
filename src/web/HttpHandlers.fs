@@ -15,8 +15,7 @@ module HttpHandlers =
     open SigmaChatServer.BlobHandlers
     open System.Threading.Tasks
     open Microsoft.Extensions.Configuration
-    open Minio.DataModel.Args
-    open Minio
+    open SigmaChatServer.MinIOInitialization
 
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
@@ -34,31 +33,6 @@ module HttpHandlers =
             return! json chatId next ctx
         }
 
-    let setupMinIOBucket (ctx: HttpContext) =
-        task {
-            let settings = ctx.GetService<IConfiguration>()
-            let client = ctx.GetService<IMinioClient>()
-            let minioSection = settings.GetSection "MinIO"
-            let bucketName = minioSection.["PublicBucketName"]
-
-            let checkArgs = (new BucketExistsArgs()).WithBucket(bucketName)
-
-            let! exists = client.BucketExistsAsync(checkArgs)
-
-            if not exists then
-                let createArgs =
-                    (new MakeBucketArgs()).WithBucket(minioSection.["PublicBucketName"])
-
-                let policy = minioSection.["Policy"]
-
-                let policyArgs =
-                    (new SetPolicyArgs())
-                        .WithBucket(minioSection.["PublicBucketName"])
-                        .WithPolicy(policy)
-
-                do! client.MakeBucketAsync(createArgs)
-                do! client.SetPolicyAsync(policyArgs)
-        }
 
     let updateSchema (next: HttpFunc) (ctx: HttpContext) =
         task {
@@ -140,6 +114,12 @@ module HttpHandlers =
 
     let handleGetUserMe (next: HttpFunc) (ctx: HttpContext) =
         task {
+            // for easier implementation of profile page i will remove it after we code in env var for bucket on front
+            let getPublicBlobUrl (minioSettings: IConfigurationSection) blobName =
+                let domain = minioSettings.["Endpoint"]
+                let bucketName = minioSettings.["PublicBucketName"]
+                domain + "/" + bucketName + "/" + blobName
+
             let userId = ctx.User.Identity.Name
             let! user = getUser ctx userId
 
@@ -148,7 +128,7 @@ module HttpHandlers =
 
                 match u.ProfilePictureBlob with
                 | Some profilePictureBlob ->
-                    getPublicBlobUrl configuration profilePictureBlob
+                    getPublicBlobUrl (configuration.GetSection "MinIO") profilePictureBlob
                     |> fun url -> { u with ProfilePictureBlob = Some url }
                 | None -> u
 

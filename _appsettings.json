@@ -1,7 +1,7 @@
 {
   "DbConnectionString": "User ID=sa;Password=JHVHjhvh!;Host=localhost;Port=5432;Database=SigmaChatDb;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;Connection Lifetime=0;SSL Mode=Disable;Trust Server Certificate=true",
   "MinIO":{
-    "Endpoint":"loclhost:9000",
+    "Endpoint":"localhost:9000",
     "AccessKey":"admin",
     "SecretKey":"jhvhJHVH!",
     "PublicBucketName":"jehovahs-pictures",
