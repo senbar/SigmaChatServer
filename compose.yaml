@@ -6,9 +6,9 @@ services:
     networks:
       - sigmaChat
   postgres:
-    image: "postgres"
+    image: postgres:18
     volumes:
-      - sql_data:/var/lib/postgresql/data
+      - sql_data:/var/lib/postgresql/18/docker
     ports:
       - "5432:5432"
     environment:
