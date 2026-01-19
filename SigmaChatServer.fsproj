@@ -19,18 +19,20 @@
     <PackageReference Include="WebPush" Version="1.0.12" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DapperHelper.fs" />
-    <Compile Include="Models.fs" />
-    <Compile Include="sql/Migrations.fs" />
-    <Compile Include="sql\ChatQueries.fs" />
-    <Compile Include="sql\UserQueries.fs" />
-    <Compile Include="sql\WebPushQueries.fs" />
-    <Compile Include="Hub.fs" />
-    <Compile Include="WebPush.fs" />
-    <Compile Include="BlobHandlers.fs" />
-    <Compile Include="HttpHandlers.fs" />
-    <Compile Include="Routing.fs" />
-    <Compile Include="Program.fs" />
+    <Compile Include="src/sql/DapperHelper.fs" />
+    <Compile Include="src/web/blobbin/BlobOperations.fs" />
+    <Compile Include="src/Models.fs" />
+    <Compile Include="src/sql/Migrations.fs" />
+    <Compile Include="src/sql/ChatQueries.fs" />
+    <Compile Include="src/sql/UserQueries.fs" />
+    <Compile Include="src/sql/WebPushQueries.fs" />
+    <Compile Include="src/web/Hub.fs" />
+    <Compile Include="src/web/WebPush.fs" />
+    <Compile Include="src/web/blobbin/ProfilePictureHandlers.fs" />
+    <Compile Include="src/web/blobbin/MinIOInitialization.fs" />
+    <Compile Include="src/web/HttpHandlers.fs" />
+    <Compile Include="src/web/Routing.fs" />
+    <Compile Include="src/web/Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="web.config" CopyToOutputDirectory="PreserveNewest" />

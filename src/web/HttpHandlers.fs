@@ -15,8 +15,7 @@ module HttpHandlers =
     open SigmaChatServer.BlobHandlers
     open System.Threading.Tasks
     open Microsoft.Extensions.Configuration
-    open Minio.DataModel.Args
-    open Minio
+    open SigmaChatServer.MinIOInitialization
 
     let handleGetChats (chatId: int) (next: HttpFunc) (ctx: HttpContext) =
         task {
@@ -39,39 +38,9 @@ module HttpHandlers =
         task {
             let connection = ctx.GetService<IDbConnection>()
 
-            do setupDatabaseSchema connection |> ignore
+            let! _ = setupDatabaseSchema connection
 
-            let settings = ctx.GetService<IConfiguration>()
-            let client = ctx.GetService<IMinioClient>()
-            let minioSection = settings.GetSection("Minio")
-
-            let checkArgs =
-                (new BucketExistsArgs()).WithBucket(minioSection.["PublicBucketName"])
-
-            do
-                client.BucketExistsAsync(checkArgs)
-                |> (fun exists ->
-                    task {
-                        let! exists = exists
-
-                        return
-                            match exists with
-                            | false ->
-                                let createArgs =
-                                    (new MakeBucketArgs()).WithBucket(minioSection.["PublicBucketName"])
-
-                                let policy = minioSection.["Policy"]
-
-                                let policyArgs =
-                                    (new SetPolicyArgs())
-                                        .WithBucket(minioSection.["PublicBucketName"])
-                                        .WithPolicy(policy)
-
-                                client.MakeBucketAsync(createArgs) |> ignore
-                                client.SetPolicyAsync(policyArgs) |> ignore
-                            | true -> ()
-                    })
-                |> ignore
+            do! setupMinIOBucket ctx
 
             return! json Ok next ctx
         }
@@ -128,7 +97,7 @@ module HttpHandlers =
 
             let! resultingUser =
                 match userInDb with
-                | Some user -> Task.FromResult(user)
+                | Some user -> Task.FromResult user
                 | None -> createUser ctx userId
 
             return! json resultingUser next ctx
@@ -145,6 +114,12 @@ module HttpHandlers =
 
     let handleGetUserMe (next: HttpFunc) (ctx: HttpContext) =
         task {
+            // for easier implementation of profile page i will remove it after we code in env var for bucket on front
+            let getPublicBlobUrl (minioSettings: IConfigurationSection) blobName =
+                let domain = minioSettings.["Endpoint"]
+                let bucketName = minioSettings.["PublicBucketName"]
+                domain + "/" + bucketName + "/" + blobName
+
             let userId = ctx.User.Identity.Name
             let! user = getUser ctx userId
 
@@ -153,7 +128,7 @@ module HttpHandlers =
 
                 match u.ProfilePictureBlob with
                 | Some profilePictureBlob ->
-                    getPublicBlobUrl configuration profilePictureBlob
+                    getPublicBlobUrl (configuration.GetSection "MinIO") profilePictureBlob
                     |> fun url -> { u with ProfilePictureBlob = Some url }
                 | None -> u
 

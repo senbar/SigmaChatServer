@@ -18,11 +18,11 @@ services:
     networks:
       - sigmaChat
   minio:
-    image: minio/minio:latest 
-    entrypoint: ["sh", "-c", "minio server /data --console-address ':9001'"]
+    image: firstfinger/minio:latest-amd64 
     ports:
       - "9000:9000"
       - "9001:9001"
+      - "9002:9002"
     networks:
       - sigmaChat
     volumes:
@@ -31,6 +31,7 @@ services:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=jhvhJHVH!
       - MINIO_DEFAULT_BUCKETS=jehovahs-pictures
+    user: "0"
 volumes:
   sql_data:
   minio_data:

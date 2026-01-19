@@ -16,6 +16,7 @@ module BlobHandlers =
     open Minio
     open Minio.DataModel.Args
     open Microsoft.Extensions.Configuration
+    open BlobOperations
 
     [<CLIMutable>]
     type FormModel = { Image: IFormFile; Test: string }
@@ -26,10 +27,6 @@ module BlobHandlers =
         | "image/png"
         | "image/gif" -> true
         | _ -> false
-
-    let getPublicBlobUrl (config: IConfiguration) blobName =
-        let minioSettings = config.GetSection("Minio")
-        minioSettings.GetValue<string>("PublicBucketUrl") + blobName
 
     let private processHttpFileRequest (next: HttpFunc) (ctx: HttpContext) handler =
         task {
@@ -46,38 +43,39 @@ module BlobHandlers =
             | false -> return! badRequest (text "Unsupported media type") next ctx
         }
 
-    let private uploadProfilePicture (userId: string) (next: HttpFunc) (ctx: HttpContext) (file: IFormFile) =
-        task {
-            let containerClient = ctx.GetService<IMinioClient>()
-            let minioSettings = ctx.GetService<IConfiguration>().GetSection("Minio")
 
-            let guid = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName)
+    let private uploadProfilePicture (minioClient:IMinioClient) (configuration:IConfiguration) (file: IFormFile)= 
+        task{
+            let minioSettings = configuration.GetSection "MinIO"
+
+            let bucketName = minioSettings.GetValue<string> "PublicBucketName"
+
+            return!
+                { FileName = file.FileName
+                  ContentStream = file.OpenReadStream()
+                  BucketName = bucketName
+                  ContentType = file.ContentType }
+                |> buildPutArgs bucketName
+                |> minioClient.PutObjectAsync
+        }
+
+    let private saveProfilePicture (userId: string) (next: HttpFunc) (ctx: HttpContext) (file: IFormFile) =
+        task {
+
+            let! putResponse= uploadProfilePicture (ctx.GetService<IMinioClient>()) (ctx.GetService<IConfiguration>()) file
 
             let fileModel =
                 { UserId = userId
-                  BlobName = guid
+                  BlobName = putResponse.ObjectName
                   OriginalFilename = file.FileName }
-
-            use stream = file.OpenReadStream()
-
-            let putArgs =
-                (new PutObjectArgs())
-                    .WithBucket(minioSettings.GetValue<string>("PublicBucketName"))
-                    .WithObject(fileModel.BlobName)
-                    .WithObjectSize(stream.Length)
-                    .WithContentType(file.ContentType)
-                    .WithStreamData(stream)
-
-            let! _ = containerClient.PutObjectAsync(putArgs)
             let! _ = upsertProfilePicture ctx fileModel
 
-            let blobUrl = getPublicBlobUrl minioSettings fileModel.BlobName
-            return! text blobUrl next ctx
+            return! text fileModel.BlobName next ctx
         }
 
     let profilePictureUploadHandler (next: HttpFunc) (ctx: HttpContext) =
         let userId = ctx.User.Identity.Name
-        uploadProfilePicture userId next ctx |> processHttpFileRequest next ctx
+        saveProfilePicture userId next ctx |> processHttpFileRequest next ctx
 
 
 //Note:

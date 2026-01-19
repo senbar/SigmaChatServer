@@ -91,7 +91,7 @@ let configureServices (services: IServiceCollection) =
     services.AddTransient<IMinioClient>(fun serviceProvider ->
         let settings = serviceProvider.GetService<IConfiguration>()
 
-        let minioSection = settings.GetSection("Minio")
+        let minioSection = settings.GetSection("MinIO")
         let endpoint = minioSection.["Endpoint"]
         let publicKey = minioSection.["AccessKey"]
         let secretKey = minioSection.["SecretKey"]
